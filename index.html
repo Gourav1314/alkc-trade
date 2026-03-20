@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ALKC Trading AI PRO</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<script src="https://s3.tradingview.com/tv.js"></script>
+
+<style>
+body{font-family:Arial;background:#0f172a;color:#fff;text-align:center;padding:10px;}
+.box{background:#111827;padding:15px;margin:8px;border-radius:10px;}
+button,input,select{padding:10px;margin:5px;border-radius:5px;border:none;}
+button{background:#22c55e;}
+</style>
+</head>
+
+<body>
+
+<h1>🚀 ALKC Trading AI PRO</h1>
+
+<button onclick="startVoice()">🎤 Start Voice</button>
+
+<div class="box">
+<select id="market">
+<option value="BTCUSDT">Crypto BTC</option>
+<option value="ETHUSDT">Crypto ETH</option>
+<option value="RELIANCE">Stock RELIANCE</option>
+<option value="USDINR">Forex USDINR</option>
+</select>
+<button onclick="generateSignal()">Get Signal</button>
+</div>
+
+<div class="box">
+<h3>📈 Chart</h3>
+<div id="chart"></div>
+</div>
+
+<div class="box">
+<h3>📊 Signal</h3>
+<p id="signal"></p>
+<p id="pattern"></p>
+<p id="explain"></p>
+<button onclick="takeTrade()">Take Trade</button>
+</div>
+
+<div class="box">
+<h3>💰 Risk</h3>
+<input id="capital" placeholder="Enter Capital">
+<button onclick="calc()">Calculate</button>
+<p id="risk"></p>
+</div>
+
+<div class="box">
+<h3>🔐 Login</h3>
+<input id="user" placeholder="Username">
+<input id="pass" type="password" placeholder="Password">
+<button onclick="login()">Login</button>
+</div>
+
+<script>
+
+/* Chart */
+new TradingView.widget({
+  width:"100%",height:300,symbol:"NSE:NIFTY",
+  interval:"5",theme:"dark",container_id:"chart"
+});
+
+/* Voice */
+function speak(t){
+ let s=new SpeechSynthesisUtterance(t);
+ s.lang="hi-IN";
+ speechSynthesis.speak(s);
+}
+
+/* Voice command */
+let rec=new(window.SpeechRecognition||window.webkitSpeechRecognition)();
+rec.lang="hi-IN";
+rec.onresult=e=>{
+ let cmd=e.results[e.results.length-1][0].transcript.toLowerCase();
+
+ if(cmd.includes("signal")) speak("सिग्नल "+currentSignal);
+ else if(cmd.includes("trade")) takeTrade();
+ else if(cmd.includes("risk")) speak("कैपिटल डालो");
+ else speak("समझ नहीं आया");
+};
+
+function startVoice(){
+ rec.start();
+ speak("ALKC असिस्टेंट चालू");
+}
+
+/* Data */
+async function getData(){
+ let m=document.getElementById("market").value;
+
+ if(m.includes("USDT")){
+  let r=await fetch(`https://api.binance.com/api/v3/klines?symbol=${m}&interval=5m&limit=3`);
+  return await r.json();
+ }
+
+ return [[0,0,0,0,100],[0,0,0,0,105],[0,100,110,95,108]];
+}
+
+/* Pattern */
+function detectPattern(o,h,l,c){
+ let body=Math.abs(o-c);
+ let range=h-l;
+
+ if(body<range*0.1) return "Doji";
+ if(c>o && body>range*0.6) return "Bullish Engulfing";
+ if(o>c && body>range*0.6) return "Bearish Engulfing";
+
+ return "No Pattern";
+}
+
+/* RSI */
+function rsi(){
+ return Math.random()*100;
+}
+
+/* Signal */
+let currentSignal="";
+async function generateSignal(){
+
+ let d=await getData();
+
+ let prev=parseFloat(d[1][4]);
+ let curr=parseFloat(d[2][4]);
+
+ let o=parseFloat(d[2][1]);
+ let h=parseFloat(d[2][2]);
+ let l=parseFloat(d[2][3]);
+ let c=curr;
+
+ let pattern=detectPattern(o,h,l,c);
+ let trend=curr>prev?"UPTREND":"DOWNTREND";
+ let r=rsi();
+
+ let signal="NO TRADE";
+ let conf="Low";
+
+ if(pattern.includes("Bullish") && trend=="UPTREND" && r<70){
+  signal="BUY"; conf="High";
+ }
+ else if(pattern.includes("Bearish") && trend=="DOWNTREND" && r>30){
+  signal="SELL"; conf="High";
+ }
+
+ currentSignal=signal+" SL 1% TARGET 2%";
+
+ document.getElementById("signal").innerText=currentSignal;
+ document.getElementById("pattern").innerText="Pattern: "+pattern+" | Trend: "+trend;
+ document.getElementById("explain").innerText="RSI: "+Math.round(r)+" | Confidence: "+conf;
+
+ speak("सिग्नल "+signal);
+
+ let a=new Audio("https://www.soundjay.com/buttons/beep-01a.mp3");
+ a.play();
+}
+
+/* Risk */
+function calc(){
+ let c=document.getElementById("capital").value;
+ let r=c*0.01;
+ let t=c*0.02;
+
+ document.getElementById("risk").innerText="Risk "+r+" Target "+t;
+
+ speak("रिस्क "+r+" टारगेट "+t);
+}
+
+/* Trade */
+function takeTrade(){
+ speak("ट्रेड कन्फर्म, स्टॉप लॉस लगाओ");
+}
+
+/* Login */
+function login(){
+ let u=document.getElementById("user").value;
+ let p=document.getElementById("pass").value;
+
+ if(u=="admin"&&p=="1234"){
+  alert("Login Success");
+  speak("लॉगिन सफल");
+ } else alert("Wrong");
+}
+
+/* Auto */
+setInterval(generateSignal,15000);
+generateSignal();
+
+</script>
+
+</body>
+</html>
